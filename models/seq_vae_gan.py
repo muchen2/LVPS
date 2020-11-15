@@ -101,17 +101,18 @@ class SequenceEncoder(nn.Module):
 
 class SequenceGenerator(nn.Module):
 
-    def __init__(self, out_channels:int, z_dim:int, device, in_channels=1, out_seqlen=16):
+    def __init__(self, out_channels:int, z_dim:int, img_encoder:nn.Module, device, in_channels=1, out_seqlen=16):
         super(SequenceGenerator, self).__init__()
         self.out_channels = out_channels
         self.out_seqlen = out_seqlen
         self.z_dim = z_dim
         self.gru = nn.GRU(z_dim, z_dim, batch_first=True)
         self.img_decoder = ImageDecoder(out_channels=out_channels, encode_len=z_dim)
+        self.img_encoder = img_encoder
         self.device = device
         self.out_seqlen = out_seqlen
     
-    def forward(self, z_img, z_seq, img_shape):
+    def forward(self, z_img, z_seq, img_shape, x_seq=None):
         z_combined = z_img * z_seq + z_img
         B, _ = z_img.shape
         C, H, W = img_shape
@@ -122,9 +123,12 @@ class SequenceGenerator(nn.Module):
         for t in range(self.out_seqlen):
             step_out, h  = self.gru(inputs, h)
             c_out = self.img_decoder(step_out.squeeze(1))
-            c_out = c_out.unsqueeze(2)
-            #print(c_out.shape)
             outputs[:, :, t, :, :] = c_out
+            if x_seq is None:
+                inputs = self.img_encoder(c_out).unsqueeze(1)
+            else:
+                if t < self.out_seqlen - 1:
+                    inputs = self.img_encoder(x_seq[:, :, t+1, :, :]).unsqueeze(1)
         return outputs
                   
 
@@ -146,7 +150,7 @@ class ConditionalAdversarialVAE(nn.Module):
         self.device = device
         self.img_encoder = ImageEncoder(in_channels, encode_len)
         self.seq_encoder = SequenceEncoder(in_channels, z_dim)
-        self.seq_decoder = SequenceGenerator(in_channels, z_dim, device)
+        self.seq_decoder = SequenceGenerator(in_channels, z_dim, self.img_encoder, device)
         self.img_shape = (in_channels, img_size, img_size)
         self.mu_proj = nn.Sequential(
             nn.Linear(z_dim, z_dim)
@@ -176,7 +180,7 @@ class ConditionalAdversarialVAE(nn.Module):
 
         #z = torch.cat([z, y], dim = 1)
         if self.training:
-            return  [self.seq_decoder(z_img, z_seq, self.img_shape), x_seq, mu, log_var]
+            return  [self.seq_decoder(z_img, z_seq, self.img_shape, x_seq), x_seq, mu, log_var]
         else:
             return self.seq_decoder(z_img, z_seq, self.img_shape)
             
