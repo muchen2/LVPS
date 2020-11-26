@@ -98,7 +98,7 @@ class ImageEmbedder(nn.Module):
 
 class SequenceEncoder(nn.Module):
 
-    def __init__(self, in_channels:int):
+    def __init__(self, in_channels, output_size):
         super(SequenceEncoder, self).__init__()
 
         """
@@ -131,7 +131,7 @@ class SequenceEncoder(nn.Module):
         encoder:add(nn.VolumetricMaxPooling(2, 2, 2))
 
         """
-        base_width = 64
+        base_width = output_size//8
         self.net = nn.Sequential(
             nn.Conv3d(in_channels, base_width, 3, padding=1),
             nn.BatchNorm3d(base_width),
