@@ -1,0 +1,3 @@
+[submodule "visual-comet"]
+	path = visual-comet
+	url = https://github.com/jamespark3922/visual-comet.git
