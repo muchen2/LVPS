@@ -45,7 +45,7 @@ python train_ode.py
 - 3D-CVAE prediction results
 ![3D-CVAE Results](presentation/cvae_results.png)
 - VAE-ODE prediction results
-![VAE-ODE Results](presentation/ode_results.png)
+![VAE-ODE Results](presentation/ode_result.png)
 
 
 
